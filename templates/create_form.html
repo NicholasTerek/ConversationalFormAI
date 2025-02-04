@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Create a Shared Audio-Enabled Form</h1>
+<form method="POST" action="{{ url_for('create_form') }}">
+  <div class="form-group">
+    <label>Your Name (Sender):</label>
+    <input type="text" name="sender" required minlength="2" maxlength="100">
+  </div>
+  <div class="form-group">
+    <label>Form Title:</label>
+    <input type="text" name="title" required minlength="3" maxlength="200">
+  </div>
+  <div class="form-group">
+    <label>Questions (one per line):</label>
+    <textarea name="questions" rows="5" required placeholder="Enter each question on a new line"></textarea>
+  </div>
+  <button type="submit">Create Form</button>
+</form>
+{% endblock %}

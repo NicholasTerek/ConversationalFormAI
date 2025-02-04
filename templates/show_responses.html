@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Responses for Form: {{ form_data.title }}</h1>
+<p>Created by: {{ form_data.sender }}</p>
+<hr>
+{% if form_data.sub_sessions %}
+  {% for user_id, session in form_data.sub_sessions.items() %}
+    <div style="margin-bottom: 20px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+      <h3>User: {{ user_id }}</h3>
+      {% if session.answers %}
+        <ol>
+          {% for answer in session.answers %}
+            <li>{{ answer }}</li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p>No responses yet.</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% else %}
+  <p>No responses have been submitted yet.</p>
+{% endif %}
+<div style="margin-top: 20px;">
+  <a href="{{ url_for('index') }}"><button>Create Another Form</button></a>
+  <!-- This button uses JavaScript to go back to the previous page -->
+  <button onclick="window.history.back();">Go Back</button>
+</div>
+{% endblock %}

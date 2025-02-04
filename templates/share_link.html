@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Form Created Successfully!</h1>
+<div class="message success">
+  <p>Share this link with your recipients:</p>
+  <div style="display: flex; align-items: center; gap: 10px; background: #f8f9fa; padding: 10px; border: 1px solid #ddd; border-radius: 6px;">
+    <input id="shareLink" type="text" value="{{ share_url }}" readonly
+           style="flex-grow: 1; padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; background: #fff;">
+    <button id="copyBtn" onclick="copyShareLink()"
+            style="padding: 8px 12px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;">
+      📋
+    </button>
+  </div>
+  <p id="copyMessage" style="margin-top: 10px; font-size: 0.9rem; color: green; display: none;">
+    ✅ Link copied to clipboard!
+  </p>
+  <p style="margin-top: 15px;">
+    Anyone who opens this link will be assigned their own personal user session
+    (i.e., they won't overwrite each other's answers).
+  </p>
+</div>
+<!-- New button to show responses -->
+<div style="display: flex; justify-content: space-between; margin-top: 20px;">
+  <a href="{{ url_for('index') }}">
+    <button>Create Another Form</button>
+  </a>
+  <a href="{{ url_for('show_responses', form_id=form_id) }}">
+    <button>Show Responses</button>
+  </a>
+</div>
+
+
+<script>
+  function copyShareLink() {
+    var copyText = document.getElementById("shareLink");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // For mobile devices
+    navigator.clipboard.writeText(copyText.value);
+
+    var copyMessage = document.getElementById("copyMessage");
+    copyMessage.style.display = "block";
+    setTimeout(() => { copyMessage.style.display = "none"; }, 2000);
+  }
+</script>
+{% endblock %}

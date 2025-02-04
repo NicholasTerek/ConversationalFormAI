@@ -1,0 +1,32 @@
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore JSON files
+*.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs & temp files
+*.log
+logs/
+temp/
+
+# Environment Variables
+.env
+
+# VSCode & IDE Files
+.vscode/
+.idea/
+*.iml
+
+# Flask-related
+instance/
+
+# OS-generated files
+.DS_Store
+Thumbs.db

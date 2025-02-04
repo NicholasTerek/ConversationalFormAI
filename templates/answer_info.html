@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="text-align: center; margin-bottom: 20px;">
+  <h1 style="font-size: 1.8rem; color: #333; margin-bottom: 2px;">
+    {{ form_data['title'] }}
+  </h1>
+  <p style="font-size: 1rem; color: #555; margin-top: 0;">
+    <strong>Created by:</strong> {{ form_data['sender'] }}
+  </p>
+</div>
+
+
+{% if is_done %}
+  <div class="message success">
+    <p>All questions have been answered for your session! Thank you!</p>
+  </div>
+{% else %}
+  <div style="border: 2px solid #007bff; border-radius: 8px; padding: 15px 20px; margin-bottom: 20px; background: #f8f9fa; display: flex; justify-content: space-between; align-items: center;">
+    <div style="text-align: left;">
+      <h2 style="margin: 0; font-size: 1.4rem; color: #007bff;">
+        Question:
+      </h2>
+      <p style="font-size: 1.2rem; font-weight: bold; margin-top: 5px; color: #333;">
+        {{ question }}
+      </p>
+    </div>
+    <button id="playQuestionBtn" style="border: none; background: #007bff; color: white; border-radius: 50%; width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; padding: 0; line-height: 0;">
+      ▶
+    </button>    
+  </div>
+
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop Recording</button>
+  <button id="uploadBtn" disabled>Upload Recording</button>
+
+  <p><strong>Note:</strong> You must allow microphone access in your browser.</p>
+
+  <div id="statusMsg" style="margin-top: 10px; color: #666;"></div>
+  <audio id="playback" class="hidden" controls style="margin: 15px 0;"></audio>
+
+  <script>
+    let mediaRecorder;
+    let recordedChunks = [];
+    let recordedBlob = null;
+
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const statusMsg = document.getElementById('statusMsg');
+    const playback = document.getElementById('playback');
+
+    // Start Recording
+    startBtn.addEventListener('click', async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        recordedChunks = [];
+        recordedBlob = null;
+
+        mediaRecorder.addEventListener('dataavailable', (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        });
+        mediaRecorder.addEventListener('start', () => {
+          statusMsg.innerText = "Recording... speak now!";
+        });
+        mediaRecorder.addEventListener('stop', () => {
+          statusMsg.innerText = "Recording stopped. You can now upload.";
+          recordedBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+          uploadBtn.disabled = false;
+
+          // Preview
+          const audioURL = URL.createObjectURL(recordedBlob);
+          playback.src = audioURL;
+          playback.classList.remove('hidden');
+        });
+
+        mediaRecorder.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        statusMsg.innerText = "Recording started...";
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+        alert("Could not access microphone. Check browser permissions or HTTPS.");
+      }
+    });
+
+    // Stop Recording
+    stopBtn.addEventListener('click', () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      }
+    });
+
+    // Upload Recording
+    uploadBtn.addEventListener('click', () => {
+      if (!recordedBlob) {
+        alert("No recording available to upload!");
+        return;
+      }
+      statusMsg.innerText = "Uploading recording...";
+
+      const formData = new FormData();
+      formData.append("file", recordedBlob, "recording.webm");
+
+      fetch("{{ url_for('submit_audio_response', form_id=form_id, user_id=user_id) }}", {
+        method: "POST",
+        body: formData
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Upload failed: " + response.status);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Server response:", data);
+        if (data.message === "Confidence too low. Please re-record your answer.") {
+          // 1) Show an alert or custom UI
+          statusMsg.innerHTML = "<span style='color: red;'>Confidence too low. Please record again!</span>";
+          
+          // 2) Optionally, re-enable your Start/Stop buttons so the user can record again
+          startBtn.disabled = false;
+          stopBtn.disabled = true;
+          uploadBtn.disabled = true;
+
+          statusMsg.innerText = "Please re-record your answer.";
+          
+        } else if (data.nextUrl) {
+          // Normal flow: proceed to the next question
+          window.location = data.nextUrl;
+        } else {
+          // Fallback: reload the page
+          window.location.reload();
+        }
+      })
+      .catch(err => {
+        console.error("Error uploading audio:", err);
+        alert("Error uploading audio: " + err.message);
+      });
+    });
+  </script>
+{% endif %}
+
+<hr style="margin-top: 40px;">
+
+<div style="margin-top: 20px; padding: 15px; border-radius: 6px; background: #f8f9fa; border: 1px solid #ddd;">
+  <h3 style="margin-top: 0; margin-bottom: 10px;">Your Personal Link</h3>
+  <div style="display: flex; align-items: center; gap: 10px;">
+    <input id="personalLink" type="text" value="{{ personal_link }}" readonly
+           style="flex-grow: 1; padding: 10px; font-size: 1rem; border: 1px solid #ccc; border-radius: 4px; background: #fff;">
+    <button id="copyPersonalBtn" onclick="copyPersonalLink()"
+            style="padding: 8px 12px; border: none; background: #007bff; color: white; border-radius: 4px; cursor: pointer;">
+      📋
+    </button>
+  </div>
+  <p id="personalCopyMsg" style="margin-top: 10px; font-size: 0.9rem; color: green; display: none;">
+    ✅ Link copied to clipboard!
+  </p>
+  <p style="margin-top: 10px; font-size: 0.95rem; color: #555;">
+    Bookmark or share this link if you want to return to your progress later.
+  </p>
+</div>
+
+<script>
+  function copyPersonalLink() {
+    var copyText = document.getElementById("personalLink");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999); // For mobile devices
+    navigator.clipboard.writeText(copyText.value);
+  
+    var copyMsg = document.getElementById("personalCopyMsg");
+    copyMsg.style.display = "block";
+    setTimeout(() => { copyMsg.style.display = "none"; }, 2000);
+  }
+</script>
+{% endblock %}
