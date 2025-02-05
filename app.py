@@ -120,17 +120,14 @@ def compute_confidence_from_logprobs(logprobs, method="avg"):
     if math.isinf(lp):
         return 0.0  # clamp -inf => confidence=0
     
-    lp_shifted = lp + 14 #SHIFT VALUE
-
-    confidence = math.exp(lp_shifted)
+    SHIFT = 18
+    shifted_lp = lp + SHIFT
+    
+    # Then convert to probability and clamp
+    confidence = min(1.0, max(0.0, math.exp(shifted_lp) / 10))
     return confidence
 
-def transcribe_audio(
-    file_path,
-    confidence_method="avg", 
-    num_beams=1, 
-    skip_special=False
-):
+def transcribe_audio(file_path, confidence_method="avg", num_beams=1, skip_special=False):
     """
     Convert .webm to .wav with pydub, then transcribe with local Whisper.
     
@@ -211,10 +208,12 @@ def transcribe_audio(
                     continue
 
                 val = step_lp[0, chosen_id].item()
-                print(f"Token {step}: id={chosen_id}, logprob={val:.4f}, text='{processor.tokenizer.decode([chosen_id])}'")
+                logger.info(f"Token {step}: id={chosen_id}, logprob={val:.4f}, text='{processor.tokenizer.decode([chosen_id])}'")
                 logprobs.append(val)
 
-
+            # Add this after the loop
+            logger.info(f"Total tokens: {len(logprobs)}")
+            logger.info(f"All logprobs: {logprobs}")
             # Compute confidence
             confidence = compute_confidence_from_logprobs(logprobs, method=confidence_method)
             text = processor.batch_decode(sequences, skip_special_tokens=True)[0]
